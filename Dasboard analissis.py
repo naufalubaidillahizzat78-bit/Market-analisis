@@ -678,11 +678,10 @@ def create_sentiment_donut(df):
     )
     
     return fig
-
 def create_cluster_visualization(df):
-    """Create cluster visualization"""
-    if 'cluster' not in df.columns:
-        return None
+    """Fungsi ini tidak lagi digunakan karena cluster sudah ada di data"""
+    return None
+
     
     cluster_stats = df.groupby('cluster').agg({
         'star_rating': 'mean',
@@ -1073,51 +1072,53 @@ def create_sunburst_chart(df):
     return fig
 
 def display_enhanced_product_card(row, rank):
-    """Display enhanced product card with better visibility"""
-    # Create container with custom styling
-    st.markdown(f"""
-    <div style="background: #FFFFFF; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
-                margin-bottom: 1rem; border-left: 5px solid #FFD700; position: relative;">
-        <div style="position: absolute; top: 1rem; right: 1rem; background: linear-gradient(135deg, #FFD700, #FFC700); 
-                    padding: 0.5rem 1rem; border-radius: 20px; font-weight: 700; color: #1A1A1A; box-shadow: 0 4px 10px rgba(255,215,0,0.3);">
-            #{rank} • {row['similarity_score']*100:.1f}% Match
-        </div>
+    """Display enhanced product card without showing HTML code"""
+    # Create columns for better layout
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        # Product title with ranking
+        st.markdown(f"### #{rank} • {row['product_title'][:150]}")
         
-        <h3 style="color: #1A1A1A; margin-bottom: 0.8rem; padding-right: 150px; font-weight: 700;">
-            {row['product_title'][:150]}
-        </h3>
+        # Rating display
+        stars = "⭐" * int(row['star_rating'])
+        st.markdown(f"**{stars}** ({row['star_rating']:.1f}/5.0)")
         
-        <div style="color: #FFD700; font-size: 1.1rem; margin: 0.5rem 0; font-weight: 600;">
-            {"⭐" * int(row['star_rating'])} <span style="color: #1A1A1A;">({row['star_rating']:.1f}/5.0)</span>
-        </div>
+        # Product metadata
+        review_count = int(row.get('review_count', 0)) if not pd.isna(row.get('review_count', 0)) else 'N/A'
+        total_helpful = int(row.get('total_helpful', 0))
+        helpful_ratio = row.get('helpful_ratio', 0)
         
-        <div style="display: flex; gap: 2rem; margin-top: 1rem; flex-wrap: wrap; color: #333333;">
-            <div style="display: flex; align-items: center; gap: 0.4rem;">
-                <span>📝</span>
-                <span style="color: #1A1A1A; font-weight: 600;">{int(row.get('review_count', 0)) if not pd.isna(row.get('review_count', 0)) else 'N/A'}</span>
-                <span style="color: #666666;">reviews</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.4rem;">
-                <span>👍</span>
-                <span style="color: #1A1A1A; font-weight: 600;">{int(row.get('total_helpful', 0))}</span>
-                <span style="color: #666666;">helpful votes</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.4rem;">
-                <span>📊</span>
-                <span style="color: #1A1A1A; font-weight: 600;">{row.get('helpful_ratio', 0):.1%}</span>
-                <span style="color: #666666;">helpful ratio</span>
-            </div>
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            st.metric("📝 Reviews", review_count)
+        with col_b:
+            st.metric("👍 Helpful", total_helpful)
+        with col_c:
+            st.metric("📊 Ratio", f"{helpful_ratio:.1%}")
+    
+    with col2:
+        # Match score badge
+        similarity = row['similarity_score'] * 100
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #FFD700, #FFC700); padding: 1rem; 
+                    border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(255,215,0,0.3);">
+            <div style="font-size: 2rem; font-weight: 800; color: #1A1A1A;">{similarity:.1f}%</div>
+            <div style="font-size: 0.9rem; color: #1A1A1A; font-weight: 600;">Match Score</div>
         </div>
-        
-        <div style="margin-top: 1rem; padding: 0.8rem; background: #F8F9FA; border-radius: 10px; border: 2px solid #E0E0E0;">
-            <div style="color: #1A1A1A; font-weight: 600; margin-bottom: 0.3rem;">🎯 Similarity Breakdown:</div>
-            <div style="color: #333333;">
-                Content Similarity: <span style="color: #FFD700; font-weight: 700;">{row.get('content_similarity', 0)*100:.1f}%</span> | 
-                Rating Similarity: <span style="color: #FFD700; font-weight: 700;">{row.get('rating_similarity', 0)*100:.1f}%</span>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    
+    # Similarity breakdown in expander
+    with st.expander("🎯 View Similarity Details"):
+        col_x, col_y = st.columns(2)
+        with col_x:
+            content_sim = row.get('content_similarity', 0) * 100
+            st.metric("Content Similarity", f"{content_sim:.1f}%")
+        with col_y:
+            rating_sim = row.get('rating_similarity', 0) * 100
+            st.metric("Rating Similarity", f"{rating_sim:.1f}%")
+    
+    st.markdown("---")
 
 # ========== MAIN APP ==========
 def main():
@@ -1569,125 +1570,156 @@ def main():
                 fig_violin = create_violin_plot(df)
                 st.plotly_chart(fig_violin, use_container_width=True)
         
-        # TAB 4: VISUAL ANALYTICS
+
+            # TAB 4: VISUAL ANALYTICS
         with tab4:
-            st.markdown("## 🎨 Advanced Visualizations")
+            st.markdown("## Advanced Visualizations")
             
-            # Funnel chart
+            # Funnel Chart
             fig_funnel = create_funnel_chart(df)
             st.plotly_chart(fig_funnel, use_container_width=True)
             
             col1, col2 = st.columns(2)
             
             with col1:
-                # Sunburst
+                # Sunburst Chart (jika ada verified_purchase)
                 if 'verified_purchase' in df.columns:
                     fig_sun = create_sunburst_chart(df)
                     if fig_sun:
                         st.plotly_chart(fig_sun, use_container_width=True)
                     else:
-                        st.info("☀️ Hierarchical chart tidak dapat ditampilkan. Data mungkin tidak memiliki kolom 'verified_purchase' atau data tidak cukup.")
+                        st.info("Sunburst chart tidak tersedia.")
                 else:
-                    st.warning("⚠️ Kolom 'verified_purchase' tidak ditemukan dalam dataset. Sunburst chart memerlukan kolom ini untuk analisis hierarki.")
-            
+                    st.warning("Kolom 'verified_purchase' tidak ada.")
+
             with col2:
-                # Cluster visualization
-                fig_cluster = create_cluster_visualization(df)
-                if fig_cluster:
-                    st.plotly_chart(fig_cluster, use_container_width=True)
-                else:
-                    st.info("🎯 Cluster visualization sedang diproses...")
-            
+                # CLUSTER VISUALIZATION — LANGSUNG PAKAI KOLOM 'cluster' YANG SUDAH ADA
+                st.markdown("#### Product Clusters (Pre-computed)")
+                
+                cluster_stats = df.groupby('cluster').agg({
+                    'product_id': 'nunique',
+                    'star_rating': 'mean',
+                    'helpful_votes': 'sum',
+                    'product_title': lambda x: x.mode().iloc[0] if not x.mode().empty else "Unknown"
+                }).round(2)
+                cluster_stats.columns = ['Products', 'Avg Rating', 'Total Helpful Votes', 'Top Product']
+                cluster_stats = cluster_stats.sort_index()
+
+                colors = ['#FFD700', '#FFC700', '#FFA500', '#FF8C00', '#FF6347'] * 3
+
+                fig_cluster = go.Figure(data=[go.Bar(
+                    x=cluster_stats.index.astype(str),
+                    y=cluster_stats['Products'],
+                    text=cluster_stats['Products'],
+                    textposition='outside',
+                    marker_color=colors[:len(cluster_stats)],
+                    hovertemplate="<b>Cluster %{x}</b><br>Produk: %{y}<br>Rata-rata Rating: %{customdata[0]:.2f} stars<br>Total Helpful: %{customdata[1]:,}<br>Contoh Produk: %{customdata[2]}<extra></extra>",
+                    customdata=cluster_stats[['Avg Rating', 'Total Helpful Votes', 'Top Product']].values
+                )])
+
+                fig_cluster.update_layout(
+                    title="Distribusi Cluster Produk",
+                    xaxis_title="Cluster ID",
+                    yaxis_title="Jumlah Produk Unik",
+                    template="plotly_white",
+                    height=520,
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
+                    font=dict(family="Inter", color="#1A1A1A")
+                )
+                st.plotly_chart(fig_cluster, use_container_width=True)
+
+                # Tabel ringkasan cluster
+                st.markdown("##### Ringkasan Cluster")
+                st.dataframe(
+                    cluster_stats.style.background_gradient(cmap="YlOrBr", subset=['Avg Rating'])
+                    .format({'Products': '{:,}', 'Avg Rating': '{:.2f}', 'Total Helpful Votes': '{:,}'}),
+                    use_container_width=True
+                )
+
             # 3D Scatter
-            st.markdown("### 🌐 3D Feature Space")
+            st.markdown("#### 3D Feature Space")
             fig_3d = create_scatter_3d(df)
             st.plotly_chart(fig_3d, use_container_width=True)
-            
-            # Additional visualizations
+
             st.markdown("---")
-            st.markdown("### 📊 Additional Analysis")
-            
+            st.markdown("### Additional Analysis")
+
             col1, col2 = st.columns(2)
-            
+
+            # Grafik 1: Product Performance Matrix (KEMBALI!)
             with col1:
-                # Product performance scatter
-                st.markdown("#### 🎯 Product Performance Matrix")
-                
+                st.markdown("#### Product Performance Matrix")
                 product_perf = df.groupby('product_id').agg({
                     'star_rating': 'mean',
                     'product_title': 'first',
                     'helpful_votes': 'sum',
                     'review_body': 'count'
                 }).rename(columns={'review_body': 'review_count'})
-                
+
                 product_perf = product_perf[product_perf['review_count'] >= 3].sort_values('star_rating', ascending=False).head(50)
-                
-                fig_perf = go.Figure(data=[
-                    go.Scatter(
-                        x=product_perf['review_count'],
-                        y=product_perf['star_rating'],
-                        mode='markers',
-                        marker=dict(
-                            size=product_perf['helpful_votes']/5,
-                            color=product_perf['star_rating'],
-                            colorscale=[[0, '#E74C3C'], [0.5, '#ffd700'], [1, '#00bfff']],
-                            showscale=True,
-                            colorbar=dict(title='Rating'),
-                            line=dict(width=1, color='#1a1a2e')
-                        ),
-                        text=product_perf['product_title'],
-                        hovertemplate='<b>%{text}</b><br>Rating: %{y:.2f}⭐<br>Reviews: %{x}<extra></extra>'
-                    )
-                ])
-                
+
+                fig_perf = go.Figure(data=[go.Scatter(
+                    x=product_perf['review_count'],
+                    y=product_perf['star_rating'],
+                    mode='markers',
+                    marker=dict(
+                        size=(product_perf['helpful_votes'] + 10),
+                        sizemode='area',
+                        sizeref=2.*(product_perf['helpful_votes'].max())/(40.**2),
+                        color=product_perf['star_rating'],
+                        colorscale='YlOrRd',
+                        showscale=True,
+                        colorbar=dict(title="Rating")
+                    ),
+                    text=product_perf['product_title'],
+                    hovertemplate='<b>%{text}</b><br>Reviews: %{x}<br>Rating: %{y:.2f} stars<br>Helpful Votes: %{marker.size:,}<extra></extra>'
+                )])
+
                 fig_perf.update_layout(
-                    xaxis_title='Number of Reviews',
-                    yaxis_title='Average Rating',
-                    template='plotly_dark',
-                    height=400,
-                    plot_bgcolor='#1a1a2e',
-                    paper_bgcolor='#1a1a2e',
-                    font=dict(color='#e0e0e0')
+                    xaxis_title="Jumlah Review",
+                    yaxis_title="Rata-rata Rating",
+                    template="plotly_white",
+                    height=450,
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
+                    font=dict(family="Inter", color="#1A1A1A")
                 )
-                
                 st.plotly_chart(fig_perf, use_container_width=True)
-            
+
+            # Grafik 2: Rating vs Helpfulness (KEMBALI!)
             with col2:
-                # Rating vs Helpfulness
-                st.markdown("#### 📈 Rating vs Helpfulness")
-                
+                st.markdown("#### Rating vs Helpfulness Ratio")
                 help_by_rating = df[df['total_votes'] > 0].groupby('star_rating').agg({
                     'helpful_votes': 'sum',
                     'total_votes': 'sum'
                 }).reset_index()
-                
                 help_by_rating['helpful_ratio'] = help_by_rating['helpful_votes'] / help_by_rating['total_votes']
-                
+
                 fig_help = go.Figure()
-                
                 fig_help.add_trace(go.Scatter(
                     x=help_by_rating['star_rating'],
                     y=help_by_rating['helpful_ratio'],
                     mode='lines+markers',
-                    name='Helpful Ratio',
-                    line=dict(color='#ffd700', width=4),
-                    marker=dict(size=12, color='#ffd700'),
+                    line=dict(color='#FFD700', width=5),
+                    marker=dict(size=14, color='#FFD700', line=dict(color='#1A1A1A', width=2)),
                     fill='tozeroy',
-                    fillcolor='rgba(255, 215, 0, 0.2)'
+                    fillcolor='rgba(255, 215, 0, 0.15)',
+                    name='Helpful Ratio'
                 ))
-                
+
                 fig_help.update_layout(
-                    xaxis_title='Star Rating',
-                    yaxis_title='Helpful Ratio',
-                    template='plotly_dark',
-                    height=400,
-                    plot_bgcolor='#1a1a2e',
-                    paper_bgcolor='#1a1a2e',
-                    font=dict(color='#e0e0e0')
+                    title="Tren Rasio Helpful Berdasarkan Rating",
+                    xaxis_title="Rating (stars)",
+                    yaxis_title="Rasio Helpful (%)",
+                    yaxis=dict(tickformat=".1%"),
+                    template="plotly_white",
+                    height=450,
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
+                    font=dict(family="Inter", color="#1A1A1A")
                 )
-                
                 st.plotly_chart(fig_help, use_container_width=True)
-        
         # TAB 5: DATA EXPLORER
         with tab5:
             st.markdown("## 📋 Data Explorer & Filter")
